@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Robot Dome Head -->
+    <path
+        android:pathData="M38,44 C38,32 70,32 70,44 Z"
+        android:fillColor="#FFFFFF" />
+
+    <!-- Left Antenna (Blue) -->
+    <path
+        android:pathData="M40,34 L33,23"
+        android:strokeColor="#3B82F6"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round" />
+
+    <!-- Right Antenna (Green) -->
+    <path
+        android:pathData="M68,34 L75,23"
+        android:strokeColor="#10B981"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round" />
+
+    <!-- Floating Cyan Dot -->
+    <path
+        android:pathData="M81,18 A3.5,3.5 0 1,1 81,17.9"
+        android:fillColor="#34D399" />
+
+    <!-- Eyes (Black) -->
+    <path
+        android:pathData="M48,39 A2.5,2.5 0 1,1 48,38.9"
+        android:fillColor="#0B0E1B" />
+    <path
+        android:pathData="M60,39 A2.5,2.5 0 1,1 60,38.9"
+        android:fillColor="#0B0E1B" />
+
+    <!-- Body Container Outline (Indigo / Purple) -->
+    <path
+        android:pathData="M36,49 L72,49 C76,49 78,51 78,55 L78,75 C78,79 76,81 72,81 L36,81 C32,81 30,79 30,75 L30,55 C30,51 32,49 36,49 Z"
+        android:fillColor="#151C33"
+        android:strokeColor="#6366F1"
+        android:strokeWidth="2.5" />
+
+    <!-- Lightning Bolt (Bright Neon Emerald Green) -->
+    <path
+        android:pathData="M56,53 L44,66 L53,66 L48,77 L62,63 L53,63 Z"
+        android:fillColor="#10B981" />
+</vector>

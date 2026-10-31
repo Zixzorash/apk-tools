@@ -1,0 +1,6 @@
+{
+  "name": "APK Builder Pro",
+  "description": "Convert ZIP projects to signed installable APK and XAPK bundles with auto-detection, code editor, and integrity verification.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
