@@ -243,7 +243,7 @@ object ApkBuilderEngine {
                 result = integrityCheck
             )
 
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             // Automatically record error log file to device storage
             val errorLogFile = ErrorLogHelper.generateAndSaveErrorLog(
                 context = context,

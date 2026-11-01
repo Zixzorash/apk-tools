@@ -333,16 +333,30 @@ object ApkSignerService {
             val storePass = if (isAutoRelease) "abp123456" else "android"
             val alias = if (isAutoRelease) "abp_release" else "androiddebugkey"
 
-            try {
-                val ks = KeyStore.getInstance("PKCS12")
-                context.assets.open(assetPath).use { input ->
-                    ks.load(input, storePass.toCharArray())
-                }
-                privateKey = ks.getKey(alias, storePass.toCharArray()) as PrivateKey
-                x509Cert = ks.getCertificate(alias) as X509Certificate
-                resolvedAlias = alias
-                resolvedIssuer = x509Cert.subjectX500Principal.name
-            } catch (e: Exception) {
+            var loadedKs: KeyStore? = null
+            for (type in listOf("PKCS12", "JKS", KeyStore.getDefaultType())) {
+                try {
+                    val ks = KeyStore.getInstance(type)
+                    context.assets.open(assetPath).use { input ->
+                        ks.load(input, storePass.toCharArray())
+                    }
+                    if (ks.containsAlias(alias)) {
+                        loadedKs = ks
+                        break
+                    }
+                } catch (_: Exception) {}
+            }
+
+            if (loadedKs != null) {
+                try {
+                    privateKey = loadedKs.getKey(alias, storePass.toCharArray()) as? PrivateKey
+                    x509Cert = loadedKs.getCertificate(alias) as? X509Certificate
+                    resolvedAlias = alias
+                    resolvedIssuer = x509Cert?.subjectX500Principal?.name ?: "Android Debug"
+                } catch (_: Exception) {}
+            }
+
+            if (privateKey == null) {
                 // Fallback RSA key generation
                 val kpg = java.security.KeyPairGenerator.getInstance("RSA")
                 kpg.initialize(2048)
@@ -491,8 +505,8 @@ object ApkSignerService {
             tempApkFile.renameTo(outputSignedApkFile)
         }
 
-        // Compute APK digest for V4 and fingerprint
-        val apkDigest = MessageDigest.getInstance("SHA-256").digest(outputSignedApkFile.readBytes())
+        // Compute APK digest for V4 and fingerprint using streaming digest
+        val apkDigest = computeFileDigest(outputSignedApkFile)
 
         // 4. V4 Streaming Signature (.idsig)
         val v4File = if (signV4 && x509Cert != null) {
@@ -520,6 +534,18 @@ object ApkSignerService {
             v4Signed = signV4 && v4File != null,
             v4IdSigFile = v4File
         )
+    }
+
+    private fun computeFileDigest(file: File): ByteArray {
+        val digest = MessageDigest.getInstance("SHA-256")
+        FileInputStream(file).use { fis ->
+            val buf = ByteArray(16384)
+            var n: Int
+            while (fis.read(buf).also { n = it } != -1) {
+                digest.update(buf, 0, n)
+            }
+        }
+        return digest.digest()
     }
 
     /**
@@ -568,13 +594,18 @@ object ApkSignerService {
             val cdOffset = bb.getInt().toLong() and 0xFFFFFFFFL
             val cdSize = bb.getInt(12).toLong() and 0xFFFFFFFFL
 
-            // Read contents up to Central Directory
+            // Calculate APK contents hash for signing using streaming read
+            val digest = MessageDigest.getInstance("SHA-256")
             raf.seek(0)
-            val preCdBytes = ByteArray(cdOffset.toInt())
-            raf.readFully(preCdBytes)
-
-            // Calculate APK contents hash for signing
-            val apkDigest = MessageDigest.getInstance("SHA-256").digest(preCdBytes)
+            var rem = cdOffset
+            val buffer = ByteArray(16384)
+            while (rem > 0) {
+                val readLen = raf.read(buffer, 0, rem.coerceAtMost(buffer.size.toLong()).toInt())
+                if (readLen <= 0) break
+                digest.update(buffer, 0, readLen)
+                rem -= readLen
+            }
+            val apkDigest = digest.digest()
 
             // Generate APK Signing Block
             val signingBlock = if (cert != null) {
@@ -589,11 +620,6 @@ object ApkSignerService {
                 return
             }
 
-            // Read Central Directory
-            raf.seek(cdOffset)
-            val cdBytes = ByteArray(cdSize.toInt())
-            raf.readFully(cdBytes)
-
             // Read EOCD
             raf.seek(eocdOffsetInFile)
             val eocdBytes = ByteArray((fileLength - eocdOffsetInFile).toInt())
@@ -604,11 +630,32 @@ object ApkSignerService {
             val eocdBuf = ByteBuffer.wrap(eocdBytes).order(ByteOrder.LITTLE_ENDIAN)
             eocdBuf.putInt(16, newCdOffset.toInt())
 
-            // Write combined final APK
+            // Write combined final APK with low memory streaming
             FileOutputStream(finalApkFile).use { fos ->
-                fos.write(preCdBytes)
+                // 1. Pre-CD bytes
+                raf.seek(0)
+                var pRem = cdOffset
+                while (pRem > 0) {
+                    val readLen = raf.read(buffer, 0, pRem.coerceAtMost(buffer.size.toLong()).toInt())
+                    if (readLen <= 0) break
+                    fos.write(buffer, 0, readLen)
+                    pRem -= readLen
+                }
+
+                // 2. Signing Block
                 fos.write(signingBlock)
-                fos.write(cdBytes)
+
+                // 3. Central Directory
+                raf.seek(cdOffset)
+                var cdRem = cdSize
+                while (cdRem > 0) {
+                    val readLen = raf.read(buffer, 0, cdRem.coerceAtMost(buffer.size.toLong()).toInt())
+                    if (readLen <= 0) break
+                    fos.write(buffer, 0, readLen)
+                    cdRem -= readLen
+                }
+
+                // 4. EOCD
                 fos.write(eocdBytes)
             }
         }

@@ -217,15 +217,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val availablePermissions = listOf(
         AppPermissionItem("android.permission.INTERNET", "อินเทอร์เน็ต (จำเป็น)", "INTERNET", isRequired = true),
         AppPermissionItem("android.permission.ACCESS_NETWORK_STATE", "ดูสถานะเครือข่าย", "ACCESS_NETWORK_STATE"),
+        AppPermissionItem("android.permission.POST_NOTIFICATIONS", "การแจ้งเตือน (Notifications)", "POST_NOTIFICATIONS"),
+        AppPermissionItem("android.permission.READ_MEDIA_IMAGES", "สิทธิ์เข้าถึง Gallery / รูปภาพ", "READ_MEDIA_IMAGES"),
+        AppPermissionItem("android.permission.READ_MEDIA_VIDEO", "สิทธิ์เข้าถึง Gallery / วิดีโอ", "READ_MEDIA_VIDEO"),
+        AppPermissionItem("android.permission.READ_EXTERNAL_STORAGE", "อ่านพื้นที่จัดเก็บข้อมูล (Storage)", "READ_EXTERNAL_STORAGE"),
+        AppPermissionItem("android.permission.WRITE_EXTERNAL_STORAGE", "เขียนพื้นที่จัดเก็บข้อมูล (Storage)", "WRITE_EXTERNAL_STORAGE"),
+        AppPermissionItem("android.permission.SYSTEM_ALERT_WINDOW", "แสดงทับหน้าต่างอื่น (Display over other apps / Overlay)", "SYSTEM_ALERT_WINDOW"),
         AppPermissionItem("android.permission.CAMERA", "กล้อง", "CAMERA"),
         AppPermissionItem("android.permission.RECORD_AUDIO", "ไมโครโฟน", "RECORD_AUDIO"),
         AppPermissionItem("android.permission.ACCESS_FINE_LOCATION", "ตำแหน่งที่แม่นยำ", "ACCESS_FINE_LOCATION"),
-        AppPermissionItem("android.permission.VIBRATE", "การสั่น", "VIBRATE"),
-        AppPermissionItem("android.permission.READ_MEDIA_IMAGES", "อ่านรูปภาพ", "READ_MEDIA_IMAGES")
+        AppPermissionItem("android.permission.VIBRATE", "การสั่น", "VIBRATE")
     )
 
     val selectedPermissions = MutableStateFlow<Set<String>>(
-        setOf("android.permission.INTERNET")
+        setOf(
+            "android.permission.INTERNET",
+            "android.permission.POST_NOTIFICATIONS",
+            "android.permission.READ_MEDIA_IMAGES",
+            "android.permission.READ_EXTERNAL_STORAGE",
+            "android.permission.SYSTEM_ALERT_WINDOW"
+        )
     )
 
     fun togglePermission(key: String) {

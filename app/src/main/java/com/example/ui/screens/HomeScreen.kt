@@ -217,6 +217,124 @@ fun HomeScreen(
         Spacer(modifier = Modifier.height(6.dp))
 
         // -------------------------------------------------------------
+        // DEVICE PERMISSION STATUS CARD
+        // -------------------------------------------------------------
+        val context = androidx.compose.ui.platform.LocalContext.current
+        var hasStoragePerm by remember {
+            mutableStateOf(
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                    android.os.Environment.isExternalStorageManager() ||
+                            androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.READ_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                } else {
+                    androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.READ_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                }
+            )
+        }
+        var hasGalleryPerm by remember {
+            mutableStateOf(
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.READ_MEDIA_IMAGES) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                } else {
+                    androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.READ_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                }
+            )
+        }
+        var hasOverlayPerm by remember {
+            mutableStateOf(android.provider.Settings.canDrawOverlays(context))
+        }
+        var hasNotificationPerm by remember {
+            mutableStateOf(
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                } else true
+            )
+        }
+
+        val permLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+            hasStoragePerm = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                android.os.Environment.isExternalStorageManager() ||
+                        androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.READ_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            } else {
+                androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.READ_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            }
+            hasGalleryPerm = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.READ_MEDIA_IMAGES) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            } else {
+                androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.READ_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            }
+            hasOverlayPerm = android.provider.Settings.canDrawOverlays(context)
+            hasNotificationPerm = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            } else true
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(Color(0xFF0F172A))
+                .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(10.dp))
+                .padding(8.dp)
+        ) {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Security, contentDescription = null, tint = AccentCyan, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("สถานะการอนุญาตสิทธิ์อุปกรณ์ (Device Permissions)", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+                    }
+
+                    Text(
+                        text = "กดเพื่อขอสิทธิ์ทั้งหมด",
+                        fontSize = 9.sp,
+                        color = AccentBlue,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable {
+                            val perms = mutableListOf<String>()
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                perms.add(android.Manifest.permission.POST_NOTIFICATIONS)
+                                perms.add(android.Manifest.permission.READ_MEDIA_IMAGES)
+                                perms.add(android.Manifest.permission.READ_MEDIA_VIDEO)
+                            } else {
+                                perms.add(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+                                perms.add(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                            }
+                            permLauncher.launch(perms.toTypedArray())
+
+                            if (!hasOverlayPerm) {
+                                try {
+                                    val intent = android.content.Intent(
+                                        android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                        android.net.Uri.parse("package:${context.packageName}")
+                                    )
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {}
+                            }
+                        }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    PermissionPill("💾 Storage", hasStoragePerm)
+                    PermissionPill("🖼️ Gallery", hasGalleryPerm)
+                    PermissionPill("🪟 Overlay", hasOverlayPerm)
+                    PermissionPill("🔔 Notification", hasNotificationPerm)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // -------------------------------------------------------------
         // HERO BANNER CARD
         // -------------------------------------------------------------
         Card(
@@ -1815,5 +1933,32 @@ fun InputFieldWithNote(
             ),
             singleLine = true
         )
+    }
+}
+
+@Composable
+fun PermissionPill(label: String, isGranted: Boolean) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(if (isGranted) AccentGreen.copy(alpha = 0.2f) else Color(0xFF1E293B))
+            .border(1.dp, if (isGranted) AccentGreen else Color(0xFF334155), RoundedCornerShape(6.dp))
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(4.dp)
+                    .clip(CircleShape)
+                    .background(if (isGranted) AccentGreen else Color(0xFFEF4444))
+            )
+            Spacer(modifier = Modifier.width(3.dp))
+            Text(
+                text = "$label ${if (isGranted) "✓" else "✕"}",
+                fontSize = 8.5.sp,
+                color = if (isGranted) AccentGreenBright else TextMuted,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
     }
 }
