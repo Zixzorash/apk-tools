@@ -84,6 +84,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val rememberedKeystoreStatus = MutableStateFlow<String?>(null)
     private val customKeystoreFile = MutableStateFlow<File?>(null)
 
+    // APK Signature Schemes V1, V2, V3, V4
+    val signV1 = MutableStateFlow(true)
+    val signV2 = MutableStateFlow(true)
+    val signV3 = MutableStateFlow(true)
+    val signV4 = MutableStateFlow(true)
+
+    // Installer Name Spoofing (Default: com.android.vending)
+    val installerPackageNameInput = MutableStateFlow("com.android.vending")
+    val isInstallerSpoofEnabled = MutableStateFlow(true)
+
+    // Project Validation Inspection
+    val showValidationDetails = MutableStateFlow(false)
+
+    fun toggleSignV1(enabled: Boolean) { signV1.value = enabled }
+    fun toggleSignV2(enabled: Boolean) { signV2.value = enabled }
+    fun toggleSignV3(enabled: Boolean) { signV3.value = enabled }
+    fun toggleSignV4(enabled: Boolean) { signV4.value = enabled }
+
     private fun loadSavedKeystoreIfExists() {
         val context = getApplication<Application>()
         val remembered = com.example.engine.KeystorePersistenceManager.loadRememberedKeystore(context)
@@ -527,7 +545,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             customFile = customKeystoreFile.value,
             alias = keystoreAliasInput.value,
             storePassword = keystoreStorePasswordInput.value,
-            keyPassword = keystoreKeyPasswordInput.value
+            keyPassword = keystoreKeyPasswordInput.value,
+            signV1 = signV1.value,
+            signV2 = signV2.value,
+            signV3 = signV3.value,
+            signV4 = signV4.value,
+            installerPackageName = installerPackageNameInput.value.ifBlank { "com.android.vending" },
+            isInstallerSpoofEnabled = isInstallerSpoofEnabled.value
         )
 
         viewModelScope.launch {
@@ -573,6 +597,32 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 }
             }
+        }
+    }
+
+    fun runOneClickAutoPipeline() {
+        viewModelScope.launch {
+            // 1. Ensure a project is loaded or load default sample
+            if (_selectedZipFile.value == null) {
+                loadSampleProject(sampleProjects.first())
+                kotlinx.coroutines.delay(600)
+            }
+
+            // 2. Auto repair build.gradle and config
+            autoRepairGradle()
+
+            // 3. Set signature schemes & installer spoof defaults
+            signV1.value = true
+            signV2.value = true
+            signV3.value = true
+            signV4.value = true
+            isInstallerSpoofEnabled.value = true
+            if (installerPackageNameInput.value.isBlank()) {
+                installerPackageNameInput.value = "com.android.vending"
+            }
+
+            // 4. Trigger build process
+            startBuildProcess()
         }
     }
 

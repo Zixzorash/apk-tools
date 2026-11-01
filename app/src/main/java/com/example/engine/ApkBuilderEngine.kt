@@ -154,21 +154,27 @@ object ApkBuilderEngine {
                 dexFile.writeBytes(generateBootstrapClassesDex())
             }
 
-            // Also copy resources.arsc from template if available
+            // Also copy resources.arsc from bootstrap assets
+            val arscFile = File(stagingDir, "resources.arsc")
             try {
-                val arscFile = File(stagingDir, "resources.arsc")
-                ZipInputStream(context.assets.open("bootstrap/template.apk")).use { zis ->
-                    var entry = zis.nextEntry
-                    while (entry != null) {
-                        if (entry.name == "resources.arsc") {
-                            FileOutputStream(arscFile).use { output -> zis.copyTo(output) }
-                            break
-                        }
-                        zis.closeEntry()
-                        entry = zis.nextEntry
-                    }
+                context.assets.open("bootstrap/resources.arsc").use { input ->
+                    FileOutputStream(arscFile).use { output -> input.copyTo(output) }
                 }
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                try {
+                    ZipInputStream(context.assets.open("bootstrap/template.apk")).use { zis ->
+                        var entry = zis.nextEntry
+                        while (entry != null) {
+                            if (entry.name == "resources.arsc") {
+                                FileOutputStream(arscFile).use { output -> zis.copyTo(output) }
+                                break
+                            }
+                            zis.closeEntry()
+                            entry = zis.nextEntry
+                        }
+                    }
+                } catch (_: Exception) {}
+            }
 
             // Icon handling: write to all density folders and drawable
             val iconBytes = if (customMetadata.rawIconBytes != null) {

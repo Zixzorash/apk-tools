@@ -187,13 +187,13 @@ object MetadataExtractor {
 
         val totalSize = allFiles.sumOf { it.length() }
 
-        return ProjectMetadata(
+        val preliminary = ProjectMetadata(
             appName = detectedAppName,
             packageName = detectedPackageName,
             versionName = detectedVersionName,
             versionCode = detectedVersionCode,
             minSdk = 24,
-            targetSdk = 35,
+            targetSdk = 36,
             frameworkType = frameworkType,
             appIconBitmap = iconBitmap,
             rawIconBytes = rawIconBytes,
@@ -203,6 +203,9 @@ object MetadataExtractor {
             totalSizeBytes = totalSize,
             sourceFileName = sourceFileName
         )
+
+        val report = ProjectValidator.validateProject(extractedDir, sourceFileName, preliminary)
+        return preliminary.copy(validationReport = report)
     }
 
     private fun generateEditableGradle(

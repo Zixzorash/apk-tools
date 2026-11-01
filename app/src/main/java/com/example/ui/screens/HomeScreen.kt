@@ -132,6 +132,15 @@ fun HomeScreen(
     val rememberedKeystoreStatus by viewModel.rememberedKeystoreStatus.collectAsState()
     val gradleRepairReport by viewModel.gradleRepairReport.collectAsState()
 
+    val signV1 by viewModel.signV1.collectAsState()
+    val signV2 by viewModel.signV2.collectAsState()
+    val signV3 by viewModel.signV3.collectAsState()
+    val signV4 by viewModel.signV4.collectAsState()
+    val showValidationDetails by viewModel.showValidationDetails.collectAsState()
+
+    val installerPackageNameInput by viewModel.installerPackageNameInput.collectAsState()
+    val isInstallerSpoofEnabled by viewModel.isInstallerSpoofEnabled.collectAsState()
+
     val selectedPermissions by viewModel.selectedPermissions.collectAsState()
 
     var showSdkDropdown by remember { mutableStateOf(false) }
@@ -405,6 +414,63 @@ fun HomeScreen(
                                 FrameworkChip("🤖 Native Android Gradle", isActive = true)
                                 FrameworkChip("✨ Google AI Studio")
                             }
+                        }
+                    }
+                }
+
+                // Project Validation Summary Card
+                val report = projectMetadata?.validationReport
+                if (report != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF0F172A))
+                            .border(
+                                1.dp,
+                                if (report.isValid) AccentGreen.copy(alpha = 0.5f) else AccentAmber.copy(alpha = 0.5f),
+                                RoundedCornerShape(8.dp)
+                            )
+                            .padding(8.dp)
+                    ) {
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = if (report.isValid) Icons.Default.CheckCircle else Icons.Default.HelpOutline,
+                                        contentDescription = null,
+                                        tint = if (report.isValid) AccentGreen else AccentAmber,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "การตรวจสอบโปรเจกต์ (Score: ${if (report.isValid) (100 - report.errorsCount * 30 - report.warningsCount * 10).coerceIn(0, 100) else 50}/100)",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextWhite
+                                    )
+                                }
+
+                                Text(
+                                    text = "ดูรายละเอียด",
+                                    fontSize = 9.5.sp,
+                                    color = AccentBlue,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.clickable { viewModel.showValidationDetails.value = true }
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "กรอบงาน: ${report.framework.displayName} • Summary: ${report.summary}",
+                                fontSize = 9.5.sp,
+                                color = TextDim
+                            )
                         }
                     }
                 }
@@ -1059,6 +1125,150 @@ fun HomeScreen(
                                 }
                             }
 
+                            // Signature Schemes Options (V1, V2, V3, V4)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(DarkInputBg)
+                                    .border(1.dp, DarkInputBorder, RoundedCornerShape(8.dp))
+                                    .padding(8.dp)
+                            ) {
+                                Column {
+                                    Text("รูปแบบการลงชื่อดิจิทัล (APK Signature Schemes)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+                                    Text("เลือกรุ่น V1, V2, V3, V4 เพื่อให้รองรับ Android ทุกเวอร์ชันและ V4 Streaming", fontSize = 9.sp, color = TextDim)
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.clickable { viewModel.signV1.value = !signV1 }
+                                        ) {
+                                            Checkbox(
+                                                checked = signV1,
+                                                onCheckedChange = { viewModel.signV1.value = it },
+                                                colors = CheckboxDefaults.colors(checkedColor = AccentBlue)
+                                            )
+                                            Text("V1 (JAR)", fontSize = 9.5.sp, color = TextWhite)
+                                        }
+
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.clickable { viewModel.signV2.value = !signV2 }
+                                        ) {
+                                            Checkbox(
+                                                checked = signV2,
+                                                onCheckedChange = { viewModel.signV2.value = it },
+                                                colors = CheckboxDefaults.colors(checkedColor = AccentBlue)
+                                            )
+                                            Text("V2 (APK Sig v2)", fontSize = 9.5.sp, color = TextWhite)
+                                        }
+
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.clickable { viewModel.signV3.value = !signV3 }
+                                        ) {
+                                            Checkbox(
+                                                checked = signV3,
+                                                onCheckedChange = { viewModel.signV3.value = it },
+                                                colors = CheckboxDefaults.colors(checkedColor = AccentBlue)
+                                            )
+                                            Text("V3 (Key Rotation)", fontSize = 9.5.sp, color = TextWhite)
+                                        }
+
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.clickable { viewModel.signV4.value = !signV4 }
+                                        ) {
+                                            Checkbox(
+                                                checked = signV4,
+                                                onCheckedChange = { viewModel.signV4.value = it },
+                                                colors = CheckboxDefaults.colors(checkedColor = AccentBlue)
+                                            )
+                                            Text("V4 (.idsig)", fontSize = 9.5.sp, color = TextWhite)
+                                        }
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            // Installer Name Spoofing Section
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(DarkInputBg)
+                                    .border(1.dp, DarkInputBorder, RoundedCornerShape(8.dp))
+                                    .padding(8.dp)
+                            ) {
+                                Column {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text("🛡️ Installer Name Spoofing (ปลอมแปลงผู้ติดตั้ง)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+                                            Text("ระบุชื่อ Package Name ของตัวติดตั้งด้วยตัวเอง (Default = com.android.vending)", fontSize = 9.sp, color = TextDim)
+                                        }
+                                        Checkbox(
+                                            checked = isInstallerSpoofEnabled,
+                                            onCheckedChange = { viewModel.isInstallerSpoofEnabled.value = it },
+                                            colors = CheckboxDefaults.colors(checkedColor = AccentBlue)
+                                        )
+                                    }
+
+                                    if (isInstallerSpoofEnabled) {
+                                        Spacer(modifier = Modifier.height(6.dp))
+
+                                        Text("ตัวเลือกพรีเซ็ตด่วน:", fontSize = 9.sp, color = TextMuted)
+                                        Spacer(modifier = Modifier.height(3.dp))
+
+                                        // Quick Presets
+                                        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                            listOf(
+                                                "com.android.vending" to "Google Play Store (แนะนำ/Default)",
+                                                "com.sec.android.app.samsungapps" to "Samsung Galaxy Store",
+                                                "com.amazon.venezia" to "Amazon Appstore"
+                                            ).forEach { (pkg, label) ->
+                                                val isSelected = installerPackageNameInput == pkg
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .clip(RoundedCornerShape(6.dp))
+                                                        .background(if (isSelected) Color(0xFF1E293B) else Color(0xFF0F172A))
+                                                        .border(1.dp, if (isSelected) AccentBlue else Color(0xFF334155), RoundedCornerShape(6.dp))
+                                                        .clickable { viewModel.installerPackageNameInput.value = pkg }
+                                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Text(pkg, fontSize = 9.5.sp, color = if (isSelected) AccentGreenBright else TextWhite, fontWeight = FontWeight.SemiBold)
+                                                        Text(label, fontSize = 8.5.sp, color = TextMuted)
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(6.dp))
+
+                                        InputFieldWithNote(
+                                            label = "Installer Package Name (กำหนดเอง)",
+                                            note = "ระบุ package name ที่ต้องการ",
+                                            value = installerPackageNameInput,
+                                            onValueChange = { viewModel.installerPackageNameInput.value = it }
+                                        )
+                                    }
+                                }
+                            }
+
                             Spacer(modifier = Modifier.height(2.dp))
 
                             // Action buttons
@@ -1208,6 +1418,33 @@ fun HomeScreen(
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
+
+                // 1-CLICK AUTO DECOMPILE & AUTO BUILD APK BUTTON
+                Button(
+                    onClick = {
+                        viewModel.runOneClickAutoPipeline()
+                        onStartBuild()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(46.dp)
+                        .testTag("one_click_auto_build_button"),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "⚡ Auto Decompile & Auto Build (1-Click อัตโนมัติ)",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
 
                 // CONVERT ACTION BUTTON
                 Button(
@@ -1367,6 +1604,99 @@ fun HomeScreen(
                             ) {
                                 Text("ตกลง / ใช้งาน", fontSize = 11.sp, color = Color.White)
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Project Validation Details Dialog
+        if (showValidationDetails && projectMetadata?.validationReport != null) {
+            val report = projectMetadata!!.validationReport!!
+            val score = if (report.isValid) (100 - report.errorsCount * 30 - report.warningsCount * 10).coerceIn(0, 100) else 50
+            androidx.compose.ui.window.Dialog(
+                onDismissRequest = { viewModel.showValidationDetails.value = false },
+                properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0xFF0F172A),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF334155))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("รายงานการตรวจสอบโครงสร้างโปรเจกต์", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+                            Text("คะแนน: $score/100", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = AccentGreen)
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(300.dp)
+                                .verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            report.checks.forEach { item ->
+                                Row(
+                                    verticalAlignment = Alignment.Top,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(DarkInputBg)
+                                        .padding(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = when (item.status) {
+                                            com.example.model.CheckStatus.PASS -> Icons.Default.CheckCircle
+                                            com.example.model.CheckStatus.WARNING -> Icons.Default.HelpOutline
+                                            com.example.model.CheckStatus.ERROR -> Icons.Default.Security
+                                            com.example.model.CheckStatus.INFO -> Icons.Default.CheckCircle
+                                        },
+                                        contentDescription = null,
+                                        tint = when (item.status) {
+                                            com.example.model.CheckStatus.PASS -> AccentGreen
+                                            com.example.model.CheckStatus.WARNING -> AccentAmber
+                                            com.example.model.CheckStatus.ERROR -> Color(0xFFEF4444)
+                                            com.example.model.CheckStatus.INFO -> AccentBlue
+                                        },
+                                        modifier = Modifier.size(16.dp).padding(top = 1.dp)
+                                    )
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    Column {
+                                        Text(item.title, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+                                        Text(item.description, fontSize = 9.5.sp, color = TextDim)
+                                        if (item.suggestion != null) {
+                                            Text("แนะนำ: ${item.suggestion}", fontSize = 9.sp, color = AccentAmber)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Button(
+                            onClick = { viewModel.showValidationDetails.value = false },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentBlue)
+                        ) {
+                            Text("ปิด", fontSize = 11.sp, color = Color.White)
                         }
                     }
                 }

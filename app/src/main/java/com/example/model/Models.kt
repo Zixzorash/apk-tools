@@ -41,7 +41,44 @@ data class KeystoreConfig(
     val alias: String = "",
     val storePassword: String = "",
     val keyPassword: String = "",
-    val isRemembered: Boolean = false
+    val isRemembered: Boolean = false,
+    val signV1: Boolean = true,
+    val signV2: Boolean = true,
+    val signV3: Boolean = true,
+    val signV4: Boolean = true,
+    val installerPackageName: String = "com.android.vending",
+    val isInstallerSpoofEnabled: Boolean = true
+)
+
+enum class CheckStatus {
+    PASS,
+    WARNING,
+    ERROR,
+    INFO
+}
+
+data class ProjectCheckItem(
+    val title: String,
+    val status: CheckStatus,
+    val description: String,
+    val suggestion: String? = null
+)
+
+data class ProjectValidationReport(
+    val isValid: Boolean,
+    val canProceed: Boolean,
+    val framework: FrameworkType,
+    val summary: String,
+    val checks: List<ProjectCheckItem>,
+    val detectedFilesCount: Int,
+    val detectedTotalSize: Long,
+    val mainEntryFile: String?,
+    val hasValidManifest: Boolean,
+    val hasValidConfig: Boolean,
+    val hasIcons: Boolean,
+    val detectedPermissions: List<String>,
+    val warningsCount: Int,
+    val errorsCount: Int
 )
 
 data class GradleRepairResult(
@@ -72,7 +109,8 @@ data class ProjectMetadata(
     val detectedPermissions: List<String> = listOf("android.permission.INTERNET"),
     val fileCount: Int = 0,
     val totalSizeBytes: Long = 0L,
-    val sourceFileName: String = ""
+    val sourceFileName: String = "",
+    val validationReport: ProjectValidationReport? = null
 )
 
 enum class BuildStatus {
